@@ -1,0 +1,37 @@
+
+======================================================================
+1. Start config server, two shards and the mongos router
+======================================================================
+  shard shardAfrica  host shardAfrica/127.0.0.1:27201
+  shard shardEurope  host shardEurope/127.0.0.1:27301
+
+======================================================================
+2. Zone sharding: pin each region to the data centre in that region
+======================================================================
+  shard key: { region: 1, _id: 1 }
+  africa-west -> shardAfrica (Lagos/Abuja),  europe-west -> shardEurope (London)
+
+======================================================================
+3. Load 200,000 anchors through the router
+======================================================================
+  inserted 200000 docs in 2.3 s
+
+======================================================================
+4. Where did the data go? (counted directly on each shard)
+======================================================================
+  shardAfrica   133333 docs  {'Abuja': 66667, 'Lagos': 66666}
+  shardEurope    66667 docs  {'London': 66667}
+
+======================================================================
+5. Targeted query vs scatter-gather (explain via mongos)
+======================================================================
+  WITH shard key (region='africa-west'): stage=SINGLE_SHARD, shards contacted=['shardAfrica'], returned=20
+  WITHOUT shard key (experience_id=42):  stage=SHARD_MERGE, shards contacted=['shardEurope', 'shardAfrica'], returned=62
+
+======================================================================
+6. Availability: what happens if the London shard goes down?
+======================================================================
+  Lagos/Abuja query still works: 133333 africa-west anchors (served by shardAfrica)
+  London query fails: ExecutionTimeout -> a shard needs its own replica set for HA
+
+Cluster stopped. Done.

@@ -1,0 +1,78 @@
+
+=== 1. Initialise PRIMARY (Lagos data centre, port 5433) ===
+CREATE DATABASE
+primary running, sample table created
+
+=== 2. Clone REPLICA with pg_basebackup (London data centre, port 5434) ===
+ replica_in_recovery_mode 
+--------------------------
+ t
+(1 row)
+
+
+=== 3. Replication status seen from the PRIMARY ===
+ application_name |   state   | sync_state | sent_lsn  | replay_lsn | lag_bytes 
+------------------+-----------+------------+-----------+------------+-----------
+ walreceiver      | streaming | async      | 0/3000000 | 0/3000000  |         0
+(1 row)
+
+
+=== 4. Write on PRIMARY -> read on REPLICA ===
+INSERT 0 1
+ event_id |           title           | capacity | tickets_sold 
+----------+---------------------------+----------+--------------
+        1 | Heritage Night AR Walk    |       50 |            3
+        3 | Abuja Night Lights Launch |        2 |            2
+       10 | Lekki AR Art Fair         |      300 |            0
+(3 rows)
+
+
+=== 5. REPLICA is read-only (write attempt must fail) ===
+ERROR:  cannot execute UPDATE in a read-only transaction
+>> rejected as expected
+
+=== 6. Synchronous replication: COMMIT waits for the replica ===
+ application_name | sync_state 
+------------------+------------
+ walreceiver      | sync
+(1 row)
+
+Timing is on.
+UPDATE 1
+Time: 2.392 ms
+
+=== 7. FAILOVER: the primary crashes ===
+waiting for server to shut down.... done
+server stopped
+psql: error: connection to server on socket "/tmp/spatialhub-repl/sock/.s.PGSQL.5433" failed: No such file or directory
+>> primary is down; replica still serves reads:
+ event_id |           title           | tickets_sold 
+----------+---------------------------+--------------
+        1 | Heritage Night AR Walk    |            3
+        3 | Abuja Night Lights Launch |            2
+       10 | Lekki AR Art Fair         |            1
+(3 rows)
+
+
+=== 8. Promote the REPLICA to be the new primary ===
+ promoted 
+----------
+ t
+(1 row)
+
+ still_replica 
+---------------
+ f
+(1 row)
+
+INSERT 0 1
+ event_id |           title           
+----------+---------------------------
+        1 | Heritage Night AR Walk
+        3 | Abuja Night Lights Launch
+       10 | Lekki AR Art Fair
+       11 | Post-failover event
+(4 rows)
+
+
+Failover complete: writes are accepted on the former replica (port 5434).
