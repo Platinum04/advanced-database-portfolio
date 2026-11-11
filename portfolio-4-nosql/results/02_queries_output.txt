@@ -1,0 +1,55 @@
+
+======================================================================
+Q1. Load the 'Lagos Heritage AR Trail' scene in a single read
+======================================================================
+title='Lagos Heritage AR Trail', tags=['education', 'heritage', 'tourism'], creator=ada_xr
+  anchor 1: Benin Bronze Head (replica scan)    glb  at [3.4026, 6.44395]  radius=15.0 m
+  anchor 2: Talking Drum                        glb  at [3.3934, 6.4512]  radius=20.0 m
+  anchor 3: Eyo Masquerade                      glb  at [3.3938, 6.4515]  radius=30.0 m
+-> relational version needs a 5-table join (experience, user, tags, anchors, assets)
+
+======================================================================
+Q2. Anchors within 300 m of a user in Yaba, Lagos ($near + 2dsphere)
+======================================================================
+20 anchors returned (nearest first). First 3:
+  anchor 4 experience 2 at [3.37915, 6.5096]
+  anchor 5 experience 2 at [3.3793, 6.5094]
+  anchor 8992 experience 177 at [3.379382587634599, 6.510224922834579]
+winning plan stages: LIMIT <- GEO_NEAR_2DSPHERE <- FETCH <- IXSCAN <- FETCH <- IXSCAN <- FETCH <- IXSCAN
+docs examined: 36 of 200008, keys examined: 116, time: 1 ms
+
+======================================================================
+Q3. Experiences tagged 'heritage' (multikey index on an array)
+======================================================================
+  Lagos Heritage AR Trail: ['education', 'heritage', 'tourism']
+  Thames AR Story Walk: ['heritage', 'tourism']
+plan: FETCH <- IXSCAN
+
+======================================================================
+Q4. Time-series telemetry with a flexible schema (headset vs phone)
+======================================================================
+inserted 12000 telemetry samples from 100 sessions
+headset sample keys: ['controllers', 'eye_gaze', 'fps', 'head_pose', 'meta', 'ts']
+phone   sample keys: ['fps', 'head_pose', 'light_estimate_lux', 'meta', 'tracking_state', 'ts']
+
+======================================================================
+Q5. Aggregation: frame-rate quality per device (comfort threshold)
+======================================================================
+device           samples  avg fps  min fps  % below comfort
+headset             3000     88.1     65.7            0.33%
+ios_arkit           3000     58.0     30.9             0.0%
+android_arcore      3000     50.0     28.2             0.1%
+webxr_browser       3000     42.0     21.9            2.07%
+(comfort threshold: 72 fps for headsets, 30 fps for phones/browsers)
+
+======================================================================
+Q6. Atomic single-document update: add an anchor to the scene
+======================================================================
+anchors in scene now: 4
+
+======================================================================
+Q7. Schema validation: insert an experience with an invalid status
+======================================================================
+REJECTED (code 121): Document failed validation
+
+Done.
