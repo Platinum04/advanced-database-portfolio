@@ -1,0 +1,25 @@
+flowchart LR
+    subgraph Clients["AR clients"]
+        W["WebXR browser"]
+        P["ARCore / ARKit phones"]
+        H["XR headsets"]
+    end
+    subgraph Lagos["Region africa-west (Lagos)"]
+        API1["SpatialHub API"]
+        PGP[("PostgreSQL PRIMARY<br/>tickets, payments, users")]
+        SA[("MongoDB shardAfrica<br/>Lagos + Abuja anchors")]
+    end
+    subgraph London["Region europe-west (London)"]
+        API2["SpatialHub API"]
+        PGR[("PostgreSQL REPLICA<br/>hot standby, read-only")]
+        SE[("MongoDB shardEurope<br/>London anchors")]
+    end
+    R{{"mongos router"}}
+    W & P & H --> API1 & API2
+    API1 -- "writes + reads" --> PGP
+    API2 -- "reads" --> PGR
+    API2 -. "ticket writes" .-> PGP
+    PGP == "WAL streaming<br/>sync or async" ==> PGR
+    API1 & API2 --> R
+    R -- "region = africa-west" --> SA
+    R -- "region = europe-west" --> SE
