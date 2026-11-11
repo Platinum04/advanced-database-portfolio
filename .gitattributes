@@ -1,0 +1,5 @@
+*.sql linguist-language=PLpgSQL linguist-detectable=true
+*.mmd linguist-documentation
+*.mmd linguist-detectable=false
+**/results/** linguist-generated
+**/sample-documents/** linguist-generated
