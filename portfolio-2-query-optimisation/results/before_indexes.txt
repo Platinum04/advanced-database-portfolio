@@ -1,0 +1,131 @@
+Timing is off.
+SET
+==================================================================
+Q1. AR client: anchors within 300 m of a user in Yaba, Lagos (nearest first)
+==================================================================
+                                                                    QUERY PLAN                                                                    
+--------------------------------------------------------------------------------------------------------------------------------------------------
+ Limit  (cost=1046719.84..1046721.71 rows=16 width=32) (actual time=165.510..168.144 rows=20 loops=1)
+   Buffers: shared hit=4017
+   ->  Gather Merge  (cost=1046719.84..1046721.71 rows=16 width=32) (actual time=165.508..168.138 rows=20 loops=1)
+         Workers Planned: 2
+         Workers Launched: 2
+         Buffers: shared hit=4017
+         ->  Sort  (cost=1045719.82..1045719.84 rows=8 width=32) (actual time=153.814..153.816 rows=7 loops=3)
+               Sort Key: (st_distance(location, '0101000020E6100000462575029A080B407D3F355EBA091A40'::geography, true))
+               Sort Method: quicksort  Memory: 26kB
+               Buffers: shared hit=4017
+               Worker 0:  Sort Method: quicksort  Memory: 25kB
+               Worker 1:  Sort Method: quicksort  Memory: 25kB
+               ->  Parallel Seq Scan on spatial_anchor  (cost=0.00..1045719.70 rows=8 width=32) (actual time=26.990..153.756 rows=9 loops=3)
+                     Filter: st_dwithin(location, '0101000020E6100000462575029A080B407D3F355EBA091A40'::geography, '300'::double precision, true)
+                     Rows Removed by Filter: 66660
+                     Buffers: shared hit=3943
+ Planning:
+   Buffers: shared hit=151
+ Planning Time: 4.233 ms
+ Execution Time: 168.207 ms
+(20 rows)
+
+==================================================================
+Q2. Profile page: a user's 20 most recent AR sessions
+==================================================================
+                                                                         QUERY PLAN                                                                          
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Limit  (cost=4554.21..4554.90 rows=6 width=43) (actual time=9.178..11.315 rows=7 loops=1)
+   Buffers: shared hit=2067
+   InitPlan 1 (returns $0)
+     ->  Index Scan using app_user_username_key on app_user  (cost=0.29..8.30 rows=1 width=8) (actual time=0.013..0.014 rows=1 loops=1)
+           Index Cond: ((username)::text = 'user5000'::text)
+           Buffers: shared hit=3
+   ->  Gather Merge  (cost=4545.90..4546.59 rows=6 width=43) (actual time=9.177..11.312 rows=7 loops=1)
+         Workers Planned: 1
+         Params Evaluated: $0
+         Workers Launched: 1
+         Buffers: shared hit=2067
+         ->  Sort  (cost=3545.89..3545.91 rows=6 width=43) (actual time=4.872..4.874 rows=4 loops=2)
+               Sort Key: s.started_at DESC
+               Sort Method: quicksort  Memory: 25kB
+               Buffers: shared hit=2064
+               Worker 0:  Sort Method: quicksort  Memory: 25kB
+               ->  Nested Loop  (cost=0.28..3545.81 rows=6 width=43) (actual time=0.874..4.834 rows=4 loops=2)
+                     Buffers: shared hit=2056
+                     ->  Parallel Seq Scan on ar_session s  (cost=0.00..3505.62 rows=6 width=36) (actual time=0.866..4.806 rows=4 loops=2)
+                           Filter: (user_id = $0)
+                           Rows Removed by Filter: 99999
+                           Buffers: shared hit=2035
+                     ->  Index Scan using ar_experience_pkey on ar_experience x  (cost=0.28..6.70 rows=1 width=23) (actual time=0.005..0.005 rows=1 loops=7)
+                           Index Cond: (experience_id = s.experience_id)
+                           Buffers: shared hit=21
+ Planning:
+   Buffers: shared hit=229
+ Planning Time: 0.474 ms
+ Execution Time: 11.346 ms
+(29 rows)
+
+==================================================================
+Q3. Analytics: interactions by type for one day, 30 days ago
+==================================================================
+                                                                                          QUERY PLAN                                                                                          
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Sort  (cost=21901.02..21901.03 rows=4 width=13) (actual time=139.481..139.530 rows=4 loops=1)
+   Sort Key: (count(*)) DESC
+   Sort Method: quicksort  Memory: 25kB
+   Buffers: shared hit=6360 read=2051
+   ->  Finalize GroupAggregate  (cost=21891.46..21900.98 rows=4 width=13) (actual time=139.371..139.522 rows=4 loops=1)
+         Group Key: interaction_type
+         Buffers: shared hit=6357 read=2051
+         ->  Gather Merge  (cost=21891.46..21900.90 rows=8 width=13) (actual time=139.319..139.511 rows=12 loops=1)
+               Workers Planned: 2
+               Workers Launched: 2
+               Buffers: shared hit=6357 read=2051
+               ->  Partial GroupAggregate  (cost=20891.44..20899.96 rows=4 width=13) (actual time=127.630..127.727 rows=4 loops=3)
+                     Group Key: interaction_type
+                     Buffers: shared hit=6357 read=2051
+                     ->  Sort  (cost=20891.44..20894.27 rows=1130 width=5) (actual time=127.600..127.643 rows=913 loops=3)
+                           Sort Key: interaction_type
+                           Sort Method: quicksort  Memory: 67kB
+                           Buffers: shared hit=6357 read=2051
+                           Worker 0:  Sort Method: quicksort  Memory: 40kB
+                           Worker 1:  Sort Method: quicksort  Memory: 34kB
+                           ->  Parallel Seq Scan on anchor_interaction  (cost=0.00..20834.14 rows=1130 width=5) (actual time=109.372..127.444 rows=913 loops=3)
+                                 Filter: ((occurred_at >= date_trunc('day'::text, (now() - '30 days'::interval))) AND (occurred_at < date_trunc('day'::text, (now() - '29 days'::interval))))
+                                 Rows Removed by Filter: 332424
+                                 Buffers: shared hit=6283 read=2051
+ Planning:
+   Buffers: shared hit=45
+ Planning Time: 0.161 ms
+ Execution Time: 139.562 ms
+(28 rows)
+
+==================================================================
+Q4. Creator dashboard: engagement for one anchor (FK lookup)
+==================================================================
+                                                                      QUERY PLAN                                                                       
+-------------------------------------------------------------------------------------------------------------------------------------------------------
+ Finalize GroupAggregate  (cost=14542.42..14542.99 rows=3 width=21) (actual time=36.329..36.392 rows=2 loops=1)
+   Group Key: interaction_type
+   Buffers: shared hit=6453 read=1955
+   ->  Gather Merge  (cost=14542.42..14542.93 rows=4 width=21) (actual time=36.315..36.381 rows=4 loops=1)
+         Workers Planned: 2
+         Workers Launched: 2
+         Buffers: shared hit=6453 read=1955
+         ->  Partial GroupAggregate  (cost=13542.40..13542.44 rows=2 width=21) (actual time=24.850..24.852 rows=1 loops=3)
+               Group Key: interaction_type
+               Buffers: shared hit=6453 read=1955
+               ->  Sort  (cost=13542.40..13542.41 rows=2 width=13) (actual time=24.843..24.844 rows=1 loops=3)
+                     Sort Key: interaction_type
+                     Sort Method: quicksort  Memory: 25kB
+                     Buffers: shared hit=6453 read=1955
+                     Worker 0:  Sort Method: quicksort  Memory: 25kB
+                     Worker 1:  Sort Method: quicksort  Memory: 25kB
+                     ->  Parallel Seq Scan on anchor_interaction ai  (cost=0.00..13542.39 rows=2 width=13) (actual time=15.461..24.774 rows=1 loops=3)
+                           Filter: (anchor_id = 1234)
+                           Rows Removed by Filter: 333336
+                           Buffers: shared hit=6379 read=1955
+ Planning:
+   Buffers: shared hit=11
+ Planning Time: 0.115 ms
+ Execution Time: 36.425 ms
+(24 rows)
+

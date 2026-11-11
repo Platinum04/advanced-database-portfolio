@@ -1,0 +1,91 @@
+Timing is on.
+SET
+Time: 0.167 ms
+=== Live aggregate (what the app would run every time) ===
+                                                                                                                      QUERY PLAN                                                                                                                       
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Limit  (cost=31543.52..31543.55 rows=10 width=48) (actual time=160.228..163.487 rows=10 loops=1)
+   Buffers: shared hit=4049
+   ->  Sort  (cost=31543.52..31748.63 rows=82043 width=48) (actual time=160.226..163.483 rows=10 loops=1)
+         Sort Key: (count(*)) DESC
+         Sort Method: top-N heapsort  Memory: 25kB
+         Buffers: shared hit=4049
+         ->  Finalize GroupAggregate  (cost=18118.68..29770.60 rows=82043 width=48) (actual time=115.980..155.688 rows=67206 loops=1)
+               Group Key: ai.anchor_id, (CASE WHEN (st_y((a.location)::geometry) > '40'::double precision) THEN 'London'::text WHEN (st_x((a.location)::geometry) > '6'::double precision) THEN 'Abuja'::text ELSE 'Lagos'::text END)
+               Buffers: shared hit=4049
+               ->  Gather Merge  (cost=18118.68..27206.75 rows=68370 width=48) (actual time=115.972..139.252 rows=67206 loops=1)
+                     Workers Planned: 2
+                     Workers Launched: 2
+                     Buffers: shared hit=4049
+                     ->  Partial GroupAggregate  (cost=17118.66..18315.13 rows=34185 width=48) (actual time=105.870..115.928 rows=22402 loops=3)
+                           Group Key: ai.anchor_id, (CASE WHEN (st_y((a.location)::geometry) > '40'::double precision) THEN 'London'::text WHEN (st_x((a.location)::geometry) > '6'::double precision) THEN 'Abuja'::text ELSE 'Lagos'::text END)
+                           Buffers: shared hit=4049
+                           ->  Sort  (cost=17118.66..17204.12 rows=34185 width=40) (actual time=105.860..107.439 rows=27394 loops=3)
+                                 Sort Key: ai.anchor_id, (CASE WHEN (st_y((a.location)::geometry) > '40'::double precision) THEN 'London'::text WHEN (st_x((a.location)::geometry) > '6'::double precision) THEN 'Abuja'::text ELSE 'Lagos'::text END)
+                                 Sort Method: quicksort  Memory: 3284kB
+                                 Buffers: shared hit=4049
+                                 Worker 0:  Sort Method: quicksort  Memory: 1471kB
+                                 Worker 1:  Sort Method: quicksort  Memory: 1530kB
+                                 ->  Parallel Hash Join  (cost=9456.91..14544.34 rows=34185 width=40) (actual time=30.811..97.418 rows=27394 loops=3)
+                                       Hash Cond: (a.anchor_id = ai.anchor_id)
+                                       Buffers: shared hit=4017
+                                       ->  Parallel Seq Scan on spatial_anchor a  (cost=0.00..3911.37 rows=83337 width=40) (actual time=0.014..13.400 rows=66669 loops=3)
+                                             Buffers: shared hit=3078
+                                       ->  Parallel Hash  (cost=9029.59..9029.59 rows=34185 width=8) (actual time=29.310..29.312 rows=27394 loops=3)
+                                             Buckets: 131072  Batches: 1  Memory Usage: 4256kB
+                                             Buffers: shared hit=915
+                                             ->  Parallel Bitmap Heap Scan on anchor_interaction ai  (cost=32.71..9029.59 rows=34185 width=8) (actual time=0.638..17.590 rows=27394 loops=3)
+                                                   Recheck Cond: (occurred_at >= (now() - '30 days'::interval))
+                                                   Rows Removed by Index Recheck: 8983
+                                                   Heap Blocks: lossy=373
+                                                   Buffers: shared hit=915
+                                                   ->  Bitmap Index Scan on idx_interaction_time_brin  (cost=0.00..12.20 rows=90910 width=0) (actual time=0.093..0.093 rows=9100 loops=1)
+                                                         Index Cond: (occurred_at >= (now() - '30 days'::interval))
+                                                         Buffers: shared hit=5
+ Planning:
+   Buffers: shared hit=232 read=5
+ Planning Time: 1.331 ms
+ Execution Time: 168.160 ms
+(42 rows)
+
+Time: 171.481 ms
+DROP MATERIALIZED VIEW
+Time: 7.182 ms
+SELECT 67206
+Time: 159.313 ms
+CREATE INDEX
+Time: 25.592 ms
+CREATE INDEX
+Time: 30.657 ms
+=== Reading the materialised view ===
+                                                                                 QUERY PLAN                                                                                  
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Limit  (cost=0.29..0.74 rows=10 width=48) (actual time=0.020..0.033 rows=10 loops=1)
+   Buffers: shared hit=10 read=2
+   ->  Index Scan using mv_trending_anchors_interactions_30d_idx on mv_trending_anchors  (cost=0.29..3036.38 rows=67206 width=48) (actual time=0.020..0.030 rows=10 loops=1)
+         Buffers: shared hit=10 read=2
+ Planning:
+   Buffers: shared hit=26 read=2
+ Planning Time: 0.220 ms
+ Execution Time: 0.081 ms
+(8 rows)
+
+Time: 0.752 ms
+ anchor_id | city_hint | interactions_30d 
+-----------+-----------+------------------
+     88689 | London    |                6
+    102675 | London    |                6
+        16 | Lagos     |                5
+      6151 | Lagos     |                5
+     40550 | Abuja     |                5
+     67940 | Abuja     |                5
+     74361 | London    |                5
+    108848 | Abuja     |                5
+    136307 | Abuja     |                5
+    136516 | Lagos     |                5
+(10 rows)
+
+Time: 0.231 ms
+=== Refresh without blocking readers (e.g. scheduled every 5 minutes) ===
+REFRESH MATERIALIZED VIEW
+Time: 370.563 ms

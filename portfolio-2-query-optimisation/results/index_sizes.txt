@@ -1,0 +1,17 @@
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+ANALYZE
+CREATE INDEX
+=== Index sizes ===
+           index_name           |  size   
+--------------------------------+---------
+ idx_interaction_time_btree_tmp | 21 MB
+ idx_anchor_location_gist       | 14 MB
+ idx_interaction_anchor         | 11 MB
+ idx_session_user_started       | 6184 kB
+ idx_interaction_time_brin      | 24 kB
+(5 rows)
+
+DROP INDEX
