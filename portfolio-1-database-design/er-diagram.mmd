@@ -1,0 +1,117 @@
+erDiagram
+    APP_USER ||--o{ ASSET_3D : "creates"
+    APP_USER ||--o{ AR_EXPERIENCE : "creates"
+    APP_USER ||--o{ TICKET : "buys"
+    APP_USER ||--o{ AR_SESSION : "starts"
+    CITY ||--o{ VENUE : "contains"
+    VENUE ||--o{ SPATIAL_ANCHOR : "hosts"
+    VENUE ||--o{ AR_EVENT : "hosts"
+    AR_EXPERIENCE ||--|{ SPATIAL_ANCHOR : "places"
+    ASSET_3D ||--o{ SPATIAL_ANCHOR : "shown at"
+    AR_EXPERIENCE ||--o{ EXPERIENCE_TAG : "has"
+    TAG ||--o{ EXPERIENCE_TAG : "labels"
+    AR_EXPERIENCE ||--o{ AR_EVENT : "featured in"
+    AR_EVENT ||--o{ TICKET : "sells"
+    TICKET ||--o| PAYMENT : "paid by"
+    AR_EXPERIENCE ||--o{ AR_SESSION : "played in"
+    AR_SESSION ||--o{ ANCHOR_INTERACTION : "records"
+    SPATIAL_ANCHOR ||--o{ ANCHOR_INTERACTION : "receives"
+
+    APP_USER {
+        bigint user_id PK
+        varchar username UK
+        varchar email UK
+        varchar full_name
+        varchar role "visitor|creator|admin"
+        timestamptz created_at
+    }
+    CITY {
+        smallint city_id PK
+        varchar name
+        char country_code
+        varchar region "future shard key"
+    }
+    VENUE {
+        bigint venue_id PK
+        smallint city_id FK
+        varchar name
+        varchar venue_type
+        varchar address
+        geography location "POINT 4326"
+    }
+    ASSET_3D {
+        bigint asset_id PK
+        bigint creator_id FK
+        varchar title
+        varchar file_format "glb|gltf|usdz"
+        varchar file_url UK
+        bigint file_size_bytes
+        int polygon_count
+    }
+    AR_EXPERIENCE {
+        bigint experience_id PK
+        bigint creator_id FK
+        varchar title
+        text description
+        varchar status
+    }
+    TAG {
+        smallint tag_id PK
+        varchar name UK
+    }
+    EXPERIENCE_TAG {
+        bigint experience_id PK,FK
+        smallint tag_id PK,FK
+    }
+    SPATIAL_ANCHOR {
+        bigint anchor_id PK
+        bigint experience_id FK
+        bigint asset_id FK
+        bigint venue_id FK "nullable"
+        geography location "POINT 4326"
+        numeric altitude_m
+        numeric heading_deg "0 to 359.99"
+        numeric scale
+        numeric activation_radius_m
+    }
+    AR_EVENT {
+        bigint event_id PK
+        bigint experience_id FK
+        bigint venue_id FK
+        varchar title
+        timestamptz starts_at
+        timestamptz ends_at
+        int capacity
+        int tickets_sold "<= capacity"
+        numeric price_ngn
+    }
+    TICKET {
+        bigint ticket_id PK
+        bigint event_id FK
+        bigint user_id FK
+        numeric price_paid
+        varchar status
+    }
+    PAYMENT {
+        bigint payment_id PK
+        bigint ticket_id FK,UK
+        numeric amount_ngn
+        varchar provider
+        varchar reference UK
+        varchar status
+    }
+    AR_SESSION {
+        bigint session_id PK
+        bigint user_id FK
+        bigint experience_id FK
+        varchar device_type
+        timestamptz started_at
+        timestamptz ended_at
+    }
+    ANCHOR_INTERACTION {
+        bigint interaction_id PK
+        bigint session_id FK
+        bigint anchor_id FK
+        varchar interaction_type
+        timestamptz occurred_at
+    }
