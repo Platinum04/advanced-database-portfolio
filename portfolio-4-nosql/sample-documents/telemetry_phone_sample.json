@@ -1,0 +1,27 @@
+{
+  "ts": {
+    "$date": "2026-11-01T16:02:00Z"
+  },
+  "meta": {
+    "device": "android_arcore",
+    "experience_id": 1,
+    "session_id": 2,
+    "user_id": 4
+  },
+  "light_estimate_lux": 12225,
+  "fps": 52.8,
+  "tracking_state": "normal",
+  "head_pose": {
+    "pos": [
+      0.29,
+      1.72,
+      0.72
+    ],
+    "rot": [
+      0.354,
+      -0.229,
+      -0.781,
+      0.992
+    ]
+  }
+}

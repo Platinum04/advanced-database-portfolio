@@ -1,0 +1,13 @@
+{
+  "_id": 4,
+  "experience_id": 2,
+  "asset_id": 3,
+  "location": {
+    "type": "Point",
+    "coordinates": [
+      3.37915,
+      6.5096
+    ]
+  },
+  "activation_radius_m": 40.0
+}

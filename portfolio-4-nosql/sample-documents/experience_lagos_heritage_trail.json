@@ -1,0 +1,87 @@
+{
+  "_id": 1,
+  "title": "Lagos Heritage AR Trail",
+  "description": "Walk Lagos Island and unlock 3D cultural artefacts.",
+  "status": "published",
+  "tags": [
+    "education",
+    "heritage",
+    "tourism"
+  ],
+  "creator": {
+    "user_id": 1,
+    "username": "ada_xr",
+    "name": "Adaeze Okafor"
+  },
+  "created_at": {
+    "$date": "2026-11-11T08:48:49.116Z"
+  },
+  "anchors": [
+    {
+      "anchor_id": 1,
+      "venue": "National Museum Onikan",
+      "location": {
+        "type": "Point",
+        "coordinates": [
+          3.4026,
+          6.44395
+        ]
+      },
+      "altitude_m": 1.2,
+      "heading_deg": 90.0,
+      "scale": 1.0,
+      "activation_radius_m": 15.0,
+      "asset": {
+        "asset_id": 1,
+        "title": "Benin Bronze Head (replica scan)",
+        "format": "glb",
+        "url": "https://cdn.spatialhub.test/assets/benin-head.glb",
+        "polygons": 120000
+      }
+    },
+    {
+      "anchor_id": 2,
+      "venue": "Freedom Park Lagos",
+      "location": {
+        "type": "Point",
+        "coordinates": [
+          3.3934,
+          6.4512
+        ]
+      },
+      "altitude_m": 0.8,
+      "heading_deg": 180.0,
+      "scale": 1.5,
+      "activation_radius_m": 20.0,
+      "asset": {
+        "asset_id": 2,
+        "title": "Talking Drum",
+        "format": "glb",
+        "url": "https://cdn.spatialhub.test/assets/talking-drum.glb",
+        "polygons": 35000
+      }
+    },
+    {
+      "anchor_id": 3,
+      "venue": "Freedom Park Lagos",
+      "location": {
+        "type": "Point",
+        "coordinates": [
+          3.3938,
+          6.4515
+        ]
+      },
+      "altitude_m": 0.0,
+      "heading_deg": 270.0,
+      "scale": 2.0,
+      "activation_radius_m": 30.0,
+      "asset": {
+        "asset_id": 5,
+        "title": "Eyo Masquerade",
+        "format": "glb",
+        "url": "https://cdn.spatialhub.test/assets/eyo.glb",
+        "polygons": 90000
+      }
+    }
+  ]
+}
