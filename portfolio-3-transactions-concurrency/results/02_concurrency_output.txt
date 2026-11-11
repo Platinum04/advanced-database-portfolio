@@ -1,0 +1,50 @@
+
+=== Demo 1: LOST UPDATE - naive read-then-write, READ COMMITTED ===
+  >> before: capacity=2, tickets_sold counter=1, real tickets=1  -> consistent
+
+  [10:30:40.263] user3    reads sold=1/2 -> seat available, buying...
+  [10:30:40.264] user4    reads sold=1/2 -> seat available, buying...
+  [10:30:40.266] user4    COMMIT, wrote tickets_sold=2
+  [10:30:40.267] user3    COMMIT, wrote tickets_sold=2
+  >> after: capacity=2, tickets_sold counter=2, real tickets=3  -> OVERSOLD / INCONSISTENT
+
+=== Demo 2: FIX A - pessimistic lock (SELECT ... FOR UPDATE) ===
+  [10:30:40.286] user4    got row lock after 2 ms, sees sold=1/2
+  [10:30:40.792] user4    COMMIT -> ticket bought
+  [10:30:40.793] user3    got row lock after 508 ms, sees sold=2/2
+  [10:30:41.294] user3    SOLD OUT -> ROLLBACK
+  >> after: capacity=2, tickets_sold counter=2, real tickets=2  -> consistent
+
+=== Demo 3: FIX B - atomic conditional UPDATE ===
+  [10:30:41.312] user4    conditional UPDATE matched 1 row (sold=2) -> COMMIT
+  [10:30:41.315] user3    conditional UPDATE matched 0 rows -> SOLD OUT
+  >> after: capacity=2, tickets_sold counter=2, real tickets=2  -> consistent
+
+=== Demo 4: FIX C - SERIALIZABLE isolation with retry ===
+  [10:30:41.334] user3    attempt 1: reads sold=1/2 (SERIALIZABLE snapshot)
+  [10:30:41.336] user4    attempt 1: reads sold=1/2 (SERIALIZABLE snapshot)
+  [10:30:41.339] user3    COMMIT -> ticket bought
+  [10:30:41.341] user4    ERROR 40001 SerializationFailure -> rolled back, retrying
+  [10:30:41.345] user4    attempt 2: reads sold=2/2 (SERIALIZABLE snapshot)
+  [10:30:41.345] user4    SOLD OUT
+  >> after: capacity=2, tickets_sold counter=2, real tickets=2  -> consistent
+
+=== Demo 5: NON-REPEATABLE READ ===
+  Isolation level: READ_COMMITTED
+  [10:30:41.355] reader   1st read of event 1 price = 5000.00
+  [10:30:41.358] writer   updates price +1000 and COMMITs
+  [10:30:41.358] reader   2nd read in SAME transaction  = 6000.00  -> NON-REPEATABLE READ
+  Isolation level: REPEATABLE_READ
+  [10:30:41.368] reader   1st read of event 1 price = 5000.00
+  [10:30:41.370] writer   updates price +1000 and COMMITs
+  [10:30:41.370] reader   2nd read in SAME transaction  = 5000.00  -> repeatable (snapshot kept)
+
+=== Demo 6: DEADLOCK detection ===
+  [10:30:41.379] admin-A  locked event 1
+  [10:30:41.379] admin-B  locked event 2
+  [10:30:41.379] admin-B  now wants event 1 ...
+  [10:30:41.380] admin-A  now wants event 2 ...
+  [10:30:41.580] admin-B  ERROR 40P01 deadlock detected -> chosen as victim, ROLLBACK
+  [10:30:41.581] admin-A  COMMIT
+
+Done.

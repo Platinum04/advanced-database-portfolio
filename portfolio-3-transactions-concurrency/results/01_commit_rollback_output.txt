@@ -1,0 +1,74 @@
+DELETE 2
+DELETE 2
+UPDATE 1
+=== Starting state of event 1 ===
+ event_id |         title          | capacity | tickets_sold 
+----------+------------------------+----------+--------------
+        1 | Heritage Night AR Walk |       50 |            2
+(1 row)
+
+=== T1: successful purchase -> COMMIT (Atomicity + Durability) ===
+BEGIN
+INSERT 0 1
+UPDATE 1
+INSERT 0 1
+COMMIT
+ event_id | tickets_sold 
+----------+--------------
+        1 |            3
+(1 row)
+
+ ticket_id | user_id | status | reference 
+-----------+---------+--------+-----------
+        32 |       5 | paid   | P3-T1-OK
+(1 row)
+
+=== T2: payment gateway declines -> ROLLBACK (nothing is kept) ===
+BEGIN
+INSERT 0 1
+UPDATE 1
+   inside T2 the seat looks taken:
+ inside_t2 
+-----------
+         4
+(1 row)
+
+ROLLBACK
+   after ROLLBACK the seat and the ticket are gone:
+ after_rollback 
+----------------
+              3
+(1 row)
+
+ user6_tickets 
+---------------
+             0
+(1 row)
+
+=== T3: SAVEPOINT - keep the ticket, undo only a failed upsell ===
+BEGIN
+INSERT 0 1
+UPDATE 1
+SAVEPOINT
+psql:01_commit_rollback.sql:52: ERROR:  new row for relation "ticket" violates check constraint "ticket_price_paid_check"
+DETAIL:  Failing row contains (35, 3, 6, -100.00, reserved, 2026-11-11 10:30:40.032021+01).
+ROLLBACK
+INSERT 0 1
+COMMIT
+ event_id | user_id |    reference    
+----------+---------+-----------------
+        1 |       6 | P3-T3-SAVEPOINT
+(1 row)
+
+=== T4: Consistency - a CHECK violation aborts the whole transaction ===
+BEGIN
+UPDATE 1
+psql:01_commit_rollback.sql:65: ERROR:  new row for relation "ar_event" violates check constraint "chk_not_oversold"
+DETAIL:  Failing row contains (1, 1, 1, Heritage Night AR Walk, 2026-12-05 18:00:00+01, 2026-12-05 21:00:00+01, 50, 51, 6000.00).
+psql:01_commit_rollback.sql:66: ERROR:  current transaction is aborted, commands ignored until end of transaction block
+ROLLBACK
+ event_id | price_ngn |         title          
+----------+-----------+------------------------
+        1 |   5000.00 | Heritage Night AR Walk
+(1 row)
+
